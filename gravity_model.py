@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 dims = 500
 max_popn = 10000
-nlocs = 7
+nlocs = 30
 
 
 def find_locations_and_populations(max_pop, nlocs):
@@ -80,9 +80,9 @@ def create_OD_matrix(populations, likelihoods, nlocs):
 
     for i in range(nlocs):
 
-        OD_matrix[i] = np.rint(0.1 * populations[i] * likelihoods[i])
-        # total_outflow[i] = np.random.randint(0, populations[i]/5)
-        # OD_matrix[i] = np.rint(np.random.multinomial(total_outflow[i], likelihoods[i]))
+        # OD_matrix[i] = np.rint(0.1 * populations[i] * likelihoods[i])
+        total_outflow[i] = np.random.randint(0, populations[i])
+        OD_matrix[i] = np.rint(np.random.multinomial(total_outflow[i], likelihoods[i]))
 
     return total_outflow, OD_matrix
 
@@ -103,54 +103,28 @@ def ci(i, n):
     c[i] = 1.
     return c
 
-mass_co = 1
-deterrance_co = 25
 
-locations, populations = find_locations_and_populations(max_popn, nlocs)
+def main(nlocs, max_popn):
+    mass_co = 1
+    deterrance_co = 5
 
-distances = calculate_distance_matrix(nlocs, locations)
+    locations, populations = find_locations_and_populations(max_popn, nlocs)
 
-likelihoods = find_likelihoods(populations, distances, mass_co, deterrance_co)
+    distances = calculate_distance_matrix(nlocs, locations)
 
-total_outflow, OD = create_OD_matrix(populations, likelihoods, nlocs)
+    likelihoods = find_likelihoods(populations, distances, mass_co, deterrance_co)
+
+    total_outflow, OD = create_OD_matrix(populations, likelihoods, nlocs)
+
+    return locations, populations, OD
 
 # print(total_outflow)
 # print(populations)
-print(OD)
-#
+# print(OD)
+
+locations, populations, OD = main(nlocs, max_popn)
+
 # plot_locations(locations, populations, dims, OD)
-
-
-
-# # exponential deterrence function
-Y,EXOG = map(np.array, zip(*[ [ xij ,\
-                  [1.] + ci(i, nlocs) + [np.log(populations[j]), - distances[i,j]] ]\
-     for i,xi in enumerate(OD) for j,xij in enumerate(xi) \
-     if i!=j and populations[j]>0.]) )
-
-print(EXOG)
-
-
-# power law deterrence function
-# Y,EXOG = map(np.array, zip(*[ [ xij ,\
-#                   [1.] + ci(i, nlocs) + [np.log(populations[j]), np.log(distances[i,j])] ]\
-#      for i,xi in enumerate(OD) for j,xij in enumerate(xi) \
-#      if i!=j and populations[j]>0.]) )
-
-poisson_model = sm.GLM(Y, EXOG, family=sm.families.Poisson(link=sm.families.links.log))
-poisson_results = poisson_model.fit()
-# print(poisson_results.summary())
-
-# Population exponent
-print(poisson_results.params[-2])
-
-# Parameter det. funct.
-
-# exponential deterrence function
-# print  1./poisson_results.params[-1]
-
-# power law deterrence function
-print(1/poisson_results.params[-1])
 
 
 
