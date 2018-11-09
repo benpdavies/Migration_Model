@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 dims = 500
 max_popn = 10000
-nlocs = 30
+nlocs = 3
 
 
 def find_locations_and_populations(max_pop, nlocs):
@@ -116,13 +116,14 @@ def main(nlocs, max_popn):
 
     total_outflow, OD = create_OD_matrix(populations, likelihoods, nlocs)
 
-    return locations, populations, OD
+    return distances, populations, OD.astype(int)
 
 # print(total_outflow)
 # print(populations)
 # print(OD)
 
-locations, populations, OD = main(nlocs, max_popn)
+# distances, populations, OD = main(nlocs, max_popn)
+# print(OD)
 
 # plot_locations(locations, populations, dims, OD)
 
