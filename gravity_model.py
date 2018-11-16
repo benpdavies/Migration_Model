@@ -87,32 +87,14 @@ def create_OD_matrix(populations, likelihoods, nlocs):
     return total_outflow, OD_matrix
 
 
-def ci(i, n):
-    """
-    The multinomial fit is a poisson fit
-    with `n` more parameters needed to
-    implement the normalization constraints:
-    i.e. the poisson variables in each of the
-    `n` origin location must sum to one.
-
-    This function selects the appropriate
-    parameter relative to the normalization
-    constant in each origin location.
-    """
-    c = list(np.zeros(n))
-    c[i] = 1.
-    return c
-
-
-def main(nlocs, max_popn):
-    mass_co = 1
-    deterrance_co = 5
+def main(nlocs, max_popn, mass_co, deterrance_co):
 
     locations, populations = find_locations_and_populations(max_popn, nlocs)
 
     distances = calculate_distance_matrix(nlocs, locations)
 
     likelihoods = find_likelihoods(populations, distances, mass_co, deterrance_co)
+    # print(likelihoods)
 
     total_outflow, OD = create_OD_matrix(populations, likelihoods, nlocs)
 

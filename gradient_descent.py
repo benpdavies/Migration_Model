@@ -3,124 +3,103 @@ import random
 import matplotlib.pyplot as plt
 import gravity_model
 
-distances, populations, OD = gravity_model.main(3, 10000)
-# probs[i, j] = mass_j**mass_power/dist_ij**-deterrance_power
+mass_coeff = 2
+deter_coeff = 10
 
-def OD_likelihood(populations, distances, mass_power, deterrance_power, OD ,exp=False):
+distances, populations, OD = gravity_model.main(4, 1000, mass_coeff, deter_coeff)
 
-    log_like = 0
+
+def prob_ij(i, j, distances, populations, mass_co, deter_co):
+
+
+
+    nlocs = len(populations)
+    totals = np.zeros(nlocs)
+
+    for n in range(nlocs):
+        if i != n:
+            totals[n] = np.exp(mass_co*np.log(populations[n]) - distances[i, n]/deter_co)
+    total = sum(totals)
+
+
+    value = np.exp(mass_co*np.log(populations[j]) - distances[i, j]*(1/deter_co))
+    if i == j:
+        value = 0
+    prob = value/total
+    return prob
+
+
+def gradient_massco(OD, distances, populations, mass_co, deter_co):
+
+
+    mass_grad = 0
     nlocs = len(OD)
-    totals = np.zeros((nlocs))
-
-    for a in range(nlocs):
-
-        e = np.zeros(nlocs)
-        for k in range(nlocs):
-            e[k] = np.exp(mass_power*np.log(populations[k]) - distances[a, k]/deterrance_power)
-        totals[a] = sum(e)
-
-
-
     for i in range(nlocs):
-        print('')
-        print(totals[i])
-        print('')
+        first = 0
+        second = 0
         for j in range(nlocs):
-            z = np.exp(mass_power*np.log(populations[j] - distances[i, j]/deterrance_power))
-            print(z)
-            print(z/totals[i])
-            print(np.log(z/totals[i]))
-            # print(OD[i, j])
-            value = OD[i, j] * np.log(z/totals[i])
-            # print(value)
-            log_like += value
+            first += OD[i, j]*np.log(populations[j])
+        for l in range(nlocs):
+            second += np.log(populations[l]) * prob_ij(i, l, distances, populations, mass_co, deter_co)
+        second = sum(OD[i]) * second
+        value = first - second
+        mass_grad += value
 
-    print(log_like)
-    return log_like
+    return mass_grad
 
 
-def gradient_wrt_deterco(OD, distances, populations, pop_co, deter_co):
+def gradient_deterco(OD, distances, populations, mass_co, deter_co):
+
 
     deter_grad = 0
     nlocs = len(OD)
-    totals = np.zeros(nlocs)
-
-    for a in range(nlocs):
-        e = np.zeros(nlocs)
-        for k in range(nlocs):
-            zed = (distances[a,k]/deter_co**2) * np.exp(pop_co*np.log(populations[k] - distances[a,k]/deter_co))
-            # zed = np.log(populations[k]) * np.exp(pop_co*np.log(populations[k]) - distances[a, k]/deter_co)
-            e[k] = zed
-        totals[a] = np.log(sum(e))
-
     for i in range(nlocs):
+        first = 0
+        second = 0
         for j in range(nlocs):
-            value = OD[i, j] * (distances[i,j]/deter_co**2 + totals[j])
-            deter_grad += value
+            first += (OD[i, j] * distances[i, j])
+        for l in range(nlocs):
+            second +=  (prob_ij(i, l, distances, populations, mass_co, deter_co) * distances[i, l])
+        second = sum(OD[i]) * second
+        value = first - second
+        deter_grad += value
 
     return deter_grad
 
 
-def gradient_wrt_popco(OD, distances, populations, pop_co, deter_co):
-
-    pop_grad = 0
-    nlocs = len(OD)
-    totals = np.zeros(nlocs)
-
-    for a in range(nlocs):
-        e = np.zeros(nlocs)
-        for k in range(nlocs):
-            zed = np.log(populations[k]) * np.exp(pop_co*np.log(populations[k]) - distances[a, k]/deter_co)
-            e[k] = zed
-        totals[a] = np.log(sum(e))
-
-    for i in range(nlocs):
-        for j in range(nlocs):
-            value = OD[i, j] * (populations[j] - totals[j])
-            pop_grad += value
-
-    return pop_grad
-
-
-
-
-
 def likelihood_grad(populations, distances, pop_co, deter_co):
 
-    pop_grad = gradient_wrt_popco(OD, distances, populations, pop_co, deter_co)
-    deter_grad = gradient_wrt_deterco(OD, distances, populations, pop_co, deter_co)
-    params_grad = [pop_grad[0], deter_grad]
-
-
+    pop_grad = gradient_massco(OD, distances, populations, pop_co, deter_co)
+    deter_grad = gradient_deterco(OD, distances, populations, pop_co, deter_co)
+    params_grad = [pop_grad[0], deter_grad[0]]
     return params_grad
 
-# print(len(OD))
-params = np.array((2, 2))
-learning_rate = 0.0003
 
-# OD_likelihood(populations, distances, 1, 5, OD)
+params = np.array((3,5))
+learning_rate = 0.001
+epochs = 100
+convergence1 = np.zeros(epochs)
+convergence2 = np.zeros(epochs)
+beta = mass_coeff * np.ones(epochs)
+R = deter_coeff * np.ones(epochs)
 
-# gradient_wrt_popco(OD, distances, populations, 1,1)
-#
-# gradient_wrt_deterco(OD, distances, populations, 3, 3)
-
-
-
-for i in range(1):
-    np.random.shuffle(OD)
-    for k in range(len(OD)):
-        for l in range(len(OD)):
-            if k!= l:
-                # population = populations[l % len(OD)]
-                # distance = distances[k, l]
-                params_grad = likelihood_grad(populations, distances, params[0], params[1])
-                delta = (learning_rate * params_grad[0], learning_rate * params_grad[1])
-                print(params)
-                print(params_grad)
-                params = params - delta
+for i in range(epochs):
+    convergence1[i] = params[0]
+    convergence2[i] = params[1]
+    params_grad = likelihood_grad(populations, distances, params[0], params[1])
+    delta = (learning_rate * params_grad[0], learning_rate * params_grad[1])
+    # print(params)
+    # print(params_grad)
+    params = params + delta
 
 
 print(params)
+
+plt.plot(range(epochs), convergence1)
+plt.plot(range(epochs), convergence2)
+plt.plot(range(epochs), beta, 'g--')
+plt.plot(range(epochs), R, 'g--')
+plt.show()
 
 
 
