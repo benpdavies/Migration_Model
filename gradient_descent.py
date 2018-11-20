@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 import gravity_model
 
 mass_coeff = 2
-deter_coeff = 10
+deter_coeff = 5
 
-distances, populations, OD = gravity_model.main(4, 1000, mass_coeff, deter_coeff)
+distances, populations, OD = gravity_model.main(6, 1000, mass_coeff, deter_coeff)
 
 
 def prob_ij(i, j, distances, populations, mass_co, deter_co):
@@ -75,21 +75,32 @@ def likelihood_grad(populations, distances, pop_co, deter_co):
     return params_grad
 
 
-params = np.array((3,5))
-learning_rate = 0.001
-epochs = 100
+params = np.array((3,4))
+learning_rate = 0.01
+epochs = 50
 convergence1 = np.zeros(epochs)
 convergence2 = np.zeros(epochs)
 beta = mass_coeff * np.ones(epochs)
 R = deter_coeff * np.ones(epochs)
+velocity1 = np.zeros(epochs+1)
+velocity2 = np.zeros(epochs+1)
+gamma = 0.9
 
 for i in range(epochs):
+
     convergence1[i] = params[0]
     convergence2[i] = params[1]
+
     params_grad = likelihood_grad(populations, distances, params[0], params[1])
     delta = (learning_rate * params_grad[0], learning_rate * params_grad[1])
+    # velocity[layer] = gamma * velocity[layer] + alpha * grad[layer]
+    # velocity1[i + 1] = gamma * velocity1[i] + learning_rate * params_grad[0]
+    # velocity2[i + 1] = gamma * velocity2[i] + learning_rate * params_grad[1]
+    # delta = (velocity1[i], velocity2[i])
     # print(params)
+
     # print(params_grad)
+
     params = params + delta
 
 
