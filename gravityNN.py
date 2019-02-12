@@ -11,11 +11,9 @@ class GravityModel_MultinomialRegression(torch.nn.Module):
     def __init__(self, dim_features=2):
         super(GravityModel_MultinomialRegression, self).__init__()
         self.linear1 = torch.nn.Linear(dim_features, 1)
-        # self.relu1 = torch.nn.ReLU()
 
     def forward(self, X):
         out = self.linear1(X)
-        # out = self.relu1(out)
         return out
 
     def loss(self, out, y):
@@ -28,54 +26,58 @@ class GravityModel_MultinomialRegression(torch.nn.Module):
         return - (y * lsm(torch.squeeze(out))).sum()
 
 model = GravityModel_MultinomialRegression()
-optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
+optimizer = torch.optim.SGD(model.parameters(), lr=0.000001)
 
-epochs = 100
-batches = 200
+epochs = 1000
+locations = 200
 parames = []
+
+X, y = gravity_model.create_training_data(nlocs=locations, max_popn=1000, mass_co=1, deterrance_co=2)
+# shape(X) = [batches, (batches-1), 2]
+# shape(Y) = [batches, (batches-1)]
 
 for epoch in range(epochs):
 
-    X, y = gravity_model.create_training_data(nlocs=batches, max_popn=1000, mass_co=2, deterrance_co=2)
+    # show model's parameters
+    params = list(model.parameters())
+    if epoch % 10 == 0:
+        print(params[0][0].detach().numpy())
 
-    if epoch == 0:
-        print(np.shape(X))
-        # shape(X) = [batches, (batches-1), 2]
-        print(np.shape(y))
-        # shape(Y) = [batches, (batches-1)]
+    # zero the parameter gradients
+    optimizer.zero_grad()
 
-    for batch in range(batches):
+    # shuffle order of training data each epoch
+    idx = list(range(locations))
+    np.random.shuffle(idx)
+
+    # initialise loss
+    loss = 0
+
+    for batch in range(locations):
+
+        # print(X[idx[batch]])
+        # print(y[idx[batch]])
 
         # X = (nlocs*(nlocs-1))x2 vector with destination % population
-        trainData = torch.tensor(X[batch], dtype=torch.float)
+        trainData = torch.tensor(X[idx[batch]], dtype=torch.float)
         # y = (nlocs*(nlocs-1))x1 vector with total journeys
-        trainJourneys = torch.tensor(y[batch], dtype=torch.float)
-
-        # zero the parameter gradients
-        optimizer.zero_grad()
+        trainJourneys = torch.tensor(y[idx[batch]], dtype=torch.float)
 
         # Forward pass: Compute predicted y by passing x to the model
         outputs = model.forward(trainData)
 
         # Compute loss
-        loss = model.loss(outputs, trainJourneys)
+        loss += model.loss(outputs, trainJourneys)
 
-        # Backward pass
-        loss.backward()
+    # Backward pass
+    loss.backward()
 
-        # Update weights
-        optimizer.step()
+    # Update weights
+    optimizer.step()
 
-        params = list(model.parameters())
-        # print(params[0][0].detach().numpy())
-        parames.append(params[0][0].detach().numpy()[0])
+    parames.append(params[0][0].detach().numpy()[0])
 
-
-    if epoch % 1 == 0:
-        print(epoch, loss.item())
-        print(params[0][0].detach().numpy())
-
-print(parames)
+# print(parames)
 #
-plt.plot(parames)
-plt.show()
+# plt.plot(parames)
+# plt.show()
